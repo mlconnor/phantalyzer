@@ -1,0 +1,17 @@
+{
+  "name": "phantalyzer",
+  "version": "0.0.1",
+  "description": "A PhantomJS script for running Wappalyzer over many sites using a headless Webkit browser",
+  "main": "phantalyzer.js",
+  "dependencies": {
+    "q": "*",
+    "string": "*",
+    "underscore":"*",
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": "",
+  "author": "Michael Connor",
+  "license": "BSD"
+}
