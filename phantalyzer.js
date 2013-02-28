@@ -196,23 +196,23 @@ function buildResourceReceived(resourcePage, destination) {
  * Creates an onLoadFinished handler
  * for Phantom for a specific destination.
  */
-function buildOnLoadFinished(page, destination) {
-  return function(status) {
-
-    if ( ! destination.error ) {
-      console.log('onLoadFinished creating image file for dest ' + destination.url + ' while resolved is ' + destination.resolvedUrl);
-      // create a file system friendly name for the url.
-      // i originally wanted to use the resolved url but
-      // if the page has an error then we don't get a resolved
-      // url.  i think at some point we should move towards
-      // resolved url but have to think through the edge cases.
-      //destination.imageName = buildSlug(destination.url) + '.png';
-      destination.imageName = buildSlug(destination.url) + '_' + new Date().getTime() + '.png';
-      console.log('writing image for ' + destination.url + ' as ' + destination.imageName);
-      page.render(outputDir + destination.imageName);
-    }
-  }
-}
+//function buildOnLoadFinished(page, destination) {
+//    return function(status) {
+//
+//    if ( ! destination.error ) {
+//      console.log('onLoadFinished creating image file for dest ' + destination.url + ' while resolved is ' + destination.resolvedUrl);
+//      // create a file system friendly name for the url.
+//      // i originally wanted to use the resolved url but
+//      // if the page has an error then we don't get a resolved
+//      // url.  i think at some point we should move towards
+//      // resolved url but have to think through the edge cases.
+//      //destination.imageName = buildSlug(destination.url) + '.png';
+//      destination.imageName = outputDir + buildSlug(destination.url) + '_' + new Date().getTime() + '.png';
+//      console.log('writing image for ' + destination.url + ' as ' + destination.imageName);
+//      page.render(destination.imageName);
+//    }
+//  }
+//}
 
 /**
  * String has a slugify() method
@@ -390,9 +390,9 @@ var visit = function createPhantomPromise(destination) {
     // resolved url but have to think through the edge cases.
     // destination.imageName = buildSlug(destination.url) + '.png';
     window.setTimeout((function() {
-      destination.imageName = buildSlug(destination.url) + '_' + new Date().getTime() + '.png';
+      destination.imageName = outputDir + buildSlug(destination.url) + '_' + new Date().getTime() + '.png';
       console.log('writing image for ' + destination.url + ' as ' + destination.imageName);
-      page.render('data/' + destination.imageName);
+      page.render(destination.imageName);
       console.log('page open complete for ' + destination.url);
      
       page.close();
@@ -570,6 +570,12 @@ current.then(function() {
 
 
   try {
+    // lets get rid of the headers field.
+    // we don't need it in the results
+    siteInfo = U.each(siteInfo, function(site) {
+      var vals = U.values(U.omit(site, 'headers'));
+    });
+    
     var jsonOut = fs.open(outputDir + 'result.json', 'w');
     jsonOut.write(JSON.stringify(siteInfo));
     jsonOut.close();
@@ -577,12 +583,6 @@ current.then(function() {
     //var csvOut = fs.open('data/result.csv', 'w');
     //console.log(JSON.stringify(siteInfo));
 
-    //U.each(siteInfo, function(site) {
-    //  var vals = U.values(U.omit(site, 'headers'));
-    //  console.log('writing result ' + JSON.stringify(site));
-    //  csvOut.write(S(vals).toCSV().s + "\n");
-    //});
-    //csvOut.close();
   } catch (e) {
     console.log('exception thrown while writing csv file ' + e);
   }

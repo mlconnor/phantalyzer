@@ -1,5 +1,5 @@
 name,url,Accept-Language,userAgent,resolvedUrl,accessTime,error,errorMsg,imageName,detected
-Google,http://www.google.com,,,,,,,,
+CNN,http://www.cnn.com,,,,,,,,
 Slashdot,http://www.slashdot.org,,,,,,,,
 Yahoo,http://www.yahoo.com,,,,,,,,
 
