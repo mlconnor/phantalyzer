@@ -12,10 +12,6 @@ Task List
 - [ ] Figure out an elegant way to do verbose output for diagnostics.
 - [ ] Figure out how to do image captures in a configurable way.
 
-This is how you would launch this beast.
-
-phantomjs --web-security=false --load-images=yes phantalyzer.js http://www.slashdot.org http://www.cnn.com
-
 Usage
 
 The -f option gives you the ability to specify the csv file for the data.
