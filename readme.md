@@ -16,4 +16,9 @@ This is how you would launch this beast.
 
 phantomjs --web-security=false --load-images=yes phantalyzer.js http://www.slashdot.org http://www.cnn.com
 
+Usage
 
+The -f option gives you the ability to specify the csv file for the data.
+The -n option is used to limit the number of sites visited.  Good for testing.
+
+phantomjs --web-security=no phantalyzer.js -f sites.csv -n 10

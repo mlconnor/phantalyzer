@@ -188,7 +188,7 @@ var wappalyzer = wappalyzer || (function() {
 					  //if (apps.hasOwnProperty(j)) {//MLC
 					    if ( w.apps[apps[j]] && w.apps[apps[j]].implies ) {
 							for ( k in w.apps[apps[j]].implies ) {
-                                                          //if ( w.apps[apps[j]].implies.hasOwnProperty(k) ) {//MLC
+                                                          if ( w.apps[apps[j]].implies.hasOwnProperty(k) ) {//MLC
 								implied = w.apps[apps[j]].implies[k];
 
 								if ( !w.apps[implied] ) {
@@ -200,7 +200,7 @@ var wappalyzer = wappalyzer || (function() {
 								if ( w.detected[url].indexOf(implied) === -1 && apps.indexOf(implied) === -1 ) {
 									apps.push(implied);
 								}
-							//}
+							}
                                                       }
 						}
 					//}
