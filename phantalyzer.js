@@ -390,9 +390,10 @@ var visit = function createPhantomPromise(destination) {
     // resolved url but have to think through the edge cases.
     // destination.imageName = buildSlug(destination.url) + '.png';
     window.setTimeout((function() {
-      destination.imageName = outputDir + buildSlug(destination.url) + '_' + new Date().getTime() + '.png';
-      console.log('writing image for ' + destination.url + ' as ' + destination.imageName);
-      page.render(destination.imageName);
+      destination.imageName = buildSlug(destination.url) + '_' + new Date().getTime() + '.png';
+      var imageFile = outputDir + '/' + destination.imageName;
+      console.log('writing image for ' + destination.url + ' as ' + imageFile);
+      page.render(imageFile);
       console.log('page open complete for ' + destination.url);
      
       page.close();
@@ -457,12 +458,12 @@ function parseArgs() {
   return args;
 }
 
-function getSiteList(args) {
+function getSiteList(options, adHocSites) {
 
   var destinations = [];
-
-  if ( args.map['f'] ) {
-    var siteFile = args.map['f'];
+i
+  if ( U.has(options, 'f') ) {
+    var siteFile = options['f'];
 
    // console.log(JSON.stringify(sites));
 
@@ -473,9 +474,12 @@ function getSiteList(args) {
       var sites = csvToJson(csvData);
       var maxSites = sites.length;
 
-      if ( U.has(args.map, 'n') ) {
-        maxSites = Math.min(sites.length, parseInt(args.map['n']));
-        console.log('Max sites set to process is ' + maxSites);
+      if ( U.has(options, 'n') ) {
+        var maxSitesParam = parseInt(options['n']);
+        if ( maxSitesParam > 0 ) {
+          maxSites = Math.min(sites.length, maxSitesParam);
+          console.log('Max sites set to process is ' + maxSites);
+        }
       }
 
       //console.log(JSON.stringify(sites));
@@ -489,14 +493,14 @@ function getSiteList(args) {
         }
       }
     } else {
-      throw 'unable to find data file ' + args.map['f'];
+      throw 'unable to find data file ' + siteFile;
     }
   }
 
   console.log(JSON.stringify(destinations));
 
   // we are going to add each url passed on the command line to the todo list.
-  args.v.forEach(function(element, index, array) {
+  adHocSites.forEach(function(element, index, array) {
     console.log('adding ' + element + ' to the data set');
     destinations.push(createDestination(element));
   });
@@ -507,9 +511,21 @@ function getSiteList(args) {
  * Program start
  ****************************************************************************************************/
 
+var defaultOptions = {
+  d: './data',
+  i: '../wappalyzer/icons',
+  n: 0
+};
+
 var args = parseArgs();
-var siteInfo = getSiteList(args);
-var outputDir = (U.has(args.map, 'd') ? args.map['d'] : './data') + '/';
+var options = U.defaults(args.map, defaultOptions);
+
+console.log('run options: ' + JSON.stringify(options));
+
+var siteInfo = getSiteList(options, args.v);
+
+var outputDir           = options['d'];
+var wappalyzerImagePath = options['i'];
 
 if ( ! fs.exists(outputDir) ) {
   console.log('Fatal Error: the output directory ' + outputDir + ' does not exist');
@@ -572,11 +588,16 @@ current.then(function() {
   try {
     // lets get rid of the headers field.
     // we don't need it in the results
-    siteInfo = U.each(siteInfo, function(site) {
-      var vals = U.values(U.omit(site, 'headers'));
+    U.each(siteInfo, function(site) {
+      if ( U.has(site, 'headers') ) {
+        delete site['headers'];
+      }
     });
     
-    var jsonOut = fs.open(outputDir + 'result.json', 'w');
+    var resultFile = outputDir + '/result.json';
+    console.log('writing result file to ' + resultFile);
+    console.log('output is ' + JSON.stringify(siteInfo));
+    var jsonOut = fs.open(resultFile, 'w');
     jsonOut.write(JSON.stringify(siteInfo));
     jsonOut.close();
 

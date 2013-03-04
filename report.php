@@ -30,9 +30,11 @@
   <body>
 <?php
 
+$inputFile = $argv[1];
+
 //<img src="//chart.googleapis.com/chart?chs=300x150&cht=p&chco=F40009&chd=t:10,20,30,40,50,60,70,80,90&chp=0.395&chl=JavaScript|Flash|Style+Sheet|HTML|Video|Audio|Image|Data|Other" width="300" height="150" alt="" />
 
-$data = json_decode(file_get_contents('result.json'));
+$data = json_decode(file_get_contents($inputFile));
 
 foreach ($data as $index => $site ) {
    if  ( empty($site->imageName) ) {
@@ -51,7 +53,7 @@ foreach ($data as $index => $site ) {
    print "<tr><td class=\"field\">Page Load Time (millis)</td><td>" . $site->pageLoadTime . "</td></tr>";
 
    foreach ( $site->detected as $i => $app ) {
-     print "<tr><td class=\"field\">$app</td><td><img src=\"../icons/" . $app . ".png\"/></td></tr>";
+     print "<tr><td class=\"field\">$app</td><td><img src=\"../wappalyzer/icons/" . $app . ".png\"/></td></tr>";
    }
 
    $resourceData = array();
