@@ -2,7 +2,12 @@ Phantalyzer is a PhantomJS based tool that leverages Wappalyzer to detect softwa
 
 After getting the Wappalyzer functionality up and running I added a few other features such as image capture for the site, site load time, and breakdown of resources loaded (HTML, CSS, etc).
 
-The basic workflow is that you run the script with a CSV file input that provides sites.  The script runs and dumps images out and a resulting json file that contains info about the run.  You can then do whatever you want with that data.  I also incuded a file called report.php that reads the json file and generates a report of the run across all the sites.  I did this in PHP because I'm more comfortable in PHP but that script really should be built in JavaScript.
+The basic workflow is that you run the script with a CSV file input that provides sites.  The script runs and dumps images out and a resulting json file that contains info about the run.  You can then do whatever you want with that data.  
+
+Report Script
+I also incuded a file called report.php that reads the json file and generates a report of the run across all the sites.  I did this in PHP because I'm more comfortable in PHP but that script really should be built in JavaScript.  The output would render something that looks like this...
+
+![reportimage](https://raw.github.com/mlconnor/phantalyzer/master/report_example.png)
 
 Installation
 You have to install phantomjs becuase this script depends on it.
