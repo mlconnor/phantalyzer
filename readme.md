@@ -14,7 +14,9 @@ Task List
 
 Usage
 
-The -f option gives you the ability to specify the csv file for the data.
-The -n option is used to limit the number of sites visited.  Good for testing.
+The --sitefile option gives you the ability to specify the csv file for the data.
+The --maxsites option is used to limit the number of sites visited.  Good for testing.
+The --outputdir option is used to tell Phantalyzer where the result.json file and the images should be stored.
+The --imgext option is used to tell Phantalyzer which image extension should be used.  png and jpg are supported.
 
-phantomjs --web-security=no phantalyzer.js -f sites.csv -n 10
+phantomjs --web-security=no phantalyzer.js --sitefile sites.csv --maxsites 10 --outputdir ./data --imgext png

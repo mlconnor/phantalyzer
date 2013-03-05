@@ -448,8 +448,8 @@ function parseArgs() {
 
   var argv = [];
   for ( var i = 1; i < system.args.length; i++ ) {
-    if ( i < system.args.length - 1 && system.args[i].match(/^-.+/) ) {
-      args.map[system.args[i].substring(1)] = system.args[i+1];
+    if ( i < system.args.length - 1 && system.args[i].match(/^--.+/) ) {
+      args.map[system.args[i].substring(2)] = system.args[i+1];
       i++;
     } else {
       args.v.push(system.args[i]);
@@ -461,9 +461,9 @@ function parseArgs() {
 function getSiteList(options, adHocSites) {
 
   var destinations = [];
-i
-  if ( U.has(options, 'f') ) {
-    var siteFile = options['f'];
+
+  if ( U.has(options, 'sitefile') ) {
+    var siteFile = options['sitefile'];
 
    // console.log(JSON.stringify(sites));
 
@@ -474,8 +474,12 @@ i
       var sites = csvToJson(csvData);
       var maxSites = sites.length;
 
-      if ( U.has(options, 'n') ) {
-        var maxSitesParam = parseInt(options['n']);
+      if ( U.has(options, 'maxsites') ) {
+        if ( ! options['maxsites'].match(/[0-9]+/) ) {
+          console.log('Error: -n option must be an integer');
+          phantomjs.exit();
+        }
+        var maxSitesParam = parseInt(options['maxsites']);
         if ( maxSitesParam > 0 ) {
           maxSites = Math.min(sites.length, maxSitesParam);
           console.log('Max sites set to process is ' + maxSites);
@@ -512,9 +516,10 @@ i
  ****************************************************************************************************/
 
 var defaultOptions = {
-  d: './data',
-  i: '../wappalyzer/icons',
-  n: 0
+  'sitefile'  : 'sites.csv',
+  'outputdir' : './data',
+  'maxsites'  : 0,
+  'imgext'    : 'png'
 };
 
 var args = parseArgs();
@@ -524,8 +529,7 @@ console.log('run options: ' + JSON.stringify(options));
 
 var siteInfo = getSiteList(options, args.v);
 
-var outputDir           = options['d'];
-var wappalyzerImagePath = options['i'];
+var outputDir = options['outputdir'];
 
 if ( ! fs.exists(outputDir) ) {
   console.log('Fatal Error: the output directory ' + outputDir + ' does not exist');
