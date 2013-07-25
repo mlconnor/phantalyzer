@@ -197,7 +197,7 @@ page.open(url, function (status) {
   console.log('pageLoadTimeMillis: ' + (new Date().getTime() - startTime));
 
   page.close();
-  //phantom.exit();
+  phantom.exit();
 });
 
 /**
