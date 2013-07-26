@@ -31,6 +31,7 @@ if ( ! fs.existsSync(program.csvFile) ) {
 
 fs.readFile(program.csvFile, 'utf8', function (err, data) {
   if (err) throw err;
+  data = data.replace(/\cm/g, "\n");
   //console.log(data);
   var records = csv.parseCSV(data);
   //console.log(records);
@@ -40,6 +41,7 @@ fs.readFile(program.csvFile, 'utf8', function (err, data) {
   var sites = csv_to_obj(records);
   //sites = sites.slice(0,3);
   var index = 0;
+//console.log(sites);
   console.log("processing " + sites.length + " records...");
 
   var flowDef = {
@@ -52,7 +54,7 @@ fs.readFile(program.csvFile, 'utf8', function (err, data) {
           currentSite = sites[index++];
           var url = currentSite[' URL ' ].trim();
           console.log("processing site", url);
-          if ( currentSite.hasOwnProperty(' Site Description ') && currentSite[' Site Description '].match(/working app/i) ) {
+          if ( currentSite.hasOwnProperty(' Site Description ') && currentSite[' Site Description '].match(/website/i) ) {
             var job = 'phantomjs simple.js "' + url + '"';
             console.log(job); 
             //process.nextTick( function() { wf.processEvent('job_complete'); });
