@@ -46,12 +46,14 @@ if ( ! fs.existsSync(program.csvFile) ) {
   process.exit(1);
 }
 var csvFile = fs.readFileSync(program.csvFile, 'utf8');
+csvFile = csvFile.replace(/\cm/g, "\n");
 
 var sites = [];
 try {
   //var csvRecs = csv.parseCSV("a,b,c\n1,2,3");
   var csvRecs = csv.parseCSV(csvFile);
   sites = csv_to_obj(csvRecs.slice(program.skipRows));
+  console.log(sites);
   //console.log(sites[0]);
   sites = sites.slice(0,program.maxRows);
 } catch (msg) {
