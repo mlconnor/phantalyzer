@@ -2,6 +2,7 @@ var U = require('underscore');
 var fs = require('fs');
 var csv = require('finite-csv');
 var exec = require('child_process').exec;
+var path = require('path');
 
 var program = require('commander');
 
@@ -62,7 +63,7 @@ fs.readFile(program.csvFile, 'utf8', function (err, data) {
             var child = exec(job,
               function (error, stdout, stderr) {
                 var slug = url.replace(/[^-a-zA-Z.0-9]/g, '-').replace(/^https?/i, '').replace(/-+/g, '-').replace(/^-/, '');
-                var filename = program.dataDir + 'site_' + index + '_' + slug + '.txt';
+                var filename = program.dataDir + path.sep + 'site_' + index + '_' + slug + '.txt';
                 if ( fs.existsSync(filename) ) {
                   fs.unlinkSync(filename);
                 }
