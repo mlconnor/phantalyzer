@@ -60,7 +60,7 @@ fs.readFile(program.csvFile, 'utf8', function (err, data) {
             console.log(job); 
             //process.nextTick( function() { wf.processEvent('job_complete'); });
           //setTimeout(function() { console.log('timeout done'); wf.processEvent('job_complete'); }, currentSite.time * 200);
-            var child = exec(job,
+            var child = exec(job, { 'maxBuffer' : 2000*1024 },
               function (error, stdout, stderr) {
                 var slug = url.replace(/[^-a-zA-Z.0-9]/g, '-').replace(/^https?/i, '').replace(/-+/g, '-').replace(/^-/, '');
                 var filename = program.dataDir + path.sep + 'site_' + index + '_' + slug + '.txt';
