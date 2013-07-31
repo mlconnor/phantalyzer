@@ -1,10 +1,10 @@
 /* the goal of this script is to open the page and spit out as much crap as possible so that
    you can grep over it later and derive information from it. */
-var      Q  = require('q');
-var      S  = require('string');
-var      U  = require('underscore');
-var system  = require('system');
-var     fs  = require('fs'); //http://code.google.com/p/phantomjs/source/browse/test/fs-spec-01.js?r=c22dfdc576fccd20db53e11a92cb349aa3cd0b2b
+var        Q = require('q');
+var        S = require('string');
+var        U = require('underscore');
+var   system = require('system');
+var       fs = require('fs'); //http://code.google.com/p/phantomjs/source/browse/test/fs-spec-01.js?r=c22dfdc576fccd20db53e11a92cb349aa3cd0b2b
 
 var page = require('webpage').create();
 var basePageReached = false;
@@ -16,9 +16,10 @@ var argV   = parseArgs().v;
 var url = U.last(argV);
 
 var headers = {};
-
 var startTime = new Date().getTime();
 
+/* you can pass any of these parameters in and they will override the 
+  phantom defaults.  the format is --loadImages true */
 var phantomPageProperties = {
   "javascriptEnabled" : true,
   "loadImages" : true,
@@ -35,6 +36,13 @@ page.settings.loadImages = true;
 page.settings.webSecurityEnabled = false;
 page.settings = U.extend(page.settings, U.pick(argMap, U.keys(phantomPageProperties)) );
 console.log('settings', JSON.stringify(page.settings));
+
+if ( U.has(argMap, "imageFile") ) {
+  if ( ! argMap['imageFile'].match(/\.(jpg|jpeg|gif|png)$/i) ) {
+    console.log('error: --imageFile ' + argMap['imageFile'] + ' must be jpeg, jpg, gif, or png');
+    phantom.exit();
+  }
+}
 
 var timerId = setTimeout(function() {
   console.log('closing page ' + url + ' due to timeout');
@@ -196,8 +204,21 @@ page.open(url, function (status) {
 
   console.log('pageLoadTimeMillis: ' + (new Date().getTime() - startTime));
 
-  page.close();
-  phantom.exit();
+  if ( U.has(argMap, 'imageFile') ) {
+    try {
+      window.setTimeout((function() {
+        page.render(argMap['imageFile']);
+        console.log('screenShotPath: ' + argMap['imageFile']);
+        page.close();
+        phantom.exit();
+      }), 5000);
+    } catch (e) {
+      console.log('error saving image', e);
+    }
+  } else {
+    page.close();
+    phantom.exit();
+  }
 });
 
 /**
