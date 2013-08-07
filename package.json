@@ -1,13 +1,12 @@
 {
   "name": "phantalyzer",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "A PhantomJS script for running Wappalyzer over many sites using a headless Webkit browser",
   "main": "phantalyzer.js",
   "dependencies": {
     "q"          : "0.8.12",
     "string"     : "1.2.0",
     "underscore" : "1.4.4",
-    "fs"         : "0.0.0",
     "csv"        : "0.3.3",
     "mustache"   : "0.7.2",
     "finite-csv" : "0.0.3",
