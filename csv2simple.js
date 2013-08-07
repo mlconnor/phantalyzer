@@ -11,6 +11,7 @@ program
   .option('-d, --dataDir <path>', 'Data directory')
   .option('-c, --csvFile <path>', 'CVS file containing site list')
   .option('-s, --skipRows [offset]', 'Number of rows to skip in the CSV file before the header.', parseInt, 0)
+  .option('-i, --imageFormat [format]')
   .option('-m, --maxRows [count]', 'Max number of records to process.', parseInt, 100000)
   .parse(process.argv);
 
@@ -32,17 +33,19 @@ if ( ! fs.existsSync(program.csvFile) ) {
 
 fs.readFile(program.csvFile, 'utf8', function (err, data) {
   if (err) throw err;
-  data = data.replace(/\cm/g, "\n");
+  data = data.replace(/\cm/g, "");
   //console.log(data);
   var records = csv.parseCSV(data);
+
   //console.log(records);
 
   // skip the first four records because yuri's spreadsheet has a header
   records = records.slice(program.skipRows);
+  console.log("header record", JSON.stringify(records[0]));
+
   var sites = csv_to_obj(records);
-  //sites = sites.slice(0,3);
   var index = 0;
-//console.log(sites);
+  //console.log(sites);
   console.log("processing " + sites.length + " records...");
 
   var flowDef = {
@@ -53,10 +56,16 @@ fs.readFile(program.csvFile, 'utf8', function (err, data) {
         "to"     : "processing",
         "action" : function() {
           currentSite = sites[index++];
+          if ( ! currentSite[' URL '] ) throw "row " + index + " does not have a URL column " + JSON.stringify(currentSite);
           var url = currentSite[' URL ' ].trim();
           console.log("processing site", url);
           if ( currentSite.hasOwnProperty(' Site Description ') && currentSite[' Site Description '].match(/website/i) ) {
-            var job = 'phantomjs simple.js "' + url + '"';
+            var job = 'phantomjs simple.js';
+            if ( program.imageFormat ) {
+              var imageFileName = program.dataDir + path.sep + buildSlug(url) + '_' + new Date().getTime() + '.' + program.imageFormat;
+              job += ' --imageFile ' + imageFileName;  
+            }
+            job += ' "' + url + '"';
             console.log(job); 
             //process.nextTick( function() { wf.processEvent('job_complete'); });
           //setTimeout(function() { console.log('timeout done'); wf.processEvent('job_complete'); }, currentSite.time * 200);
@@ -107,6 +116,8 @@ fs.readFile(program.csvFile, 'utf8', function (err, data) {
   wf.enterStartState();
 });
 
+
+
 // at this point we have 
 
 var currentSite = null;
@@ -141,6 +152,14 @@ function csv_to_obj(records) {
     }
   }
   return objects;
+}
+
+function buildSlug(url) {
+  return url.trim()
+         .replace(/[^\w\s-]/g, '')
+         .replace(/[-\s]+/g, '-')
+         .toLowerCase()
+         .replace(/^http/g, '');
 }
 
 function FiniteStateMachine(flow) {
