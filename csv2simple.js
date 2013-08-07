@@ -33,7 +33,7 @@ if ( ! fs.existsSync(program.csvFile) ) {
 
 fs.readFile(program.csvFile, 'utf8', function (err, data) {
   if (err) throw err;
-  data = data.replace(/\cm/g, "");
+  data = data.replace(/\cm\\s*/g, "\n");
   //console.log(data);
   var records = csv.parseCSV(data);
 
