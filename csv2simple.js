@@ -33,7 +33,7 @@ if ( ! fs.existsSync(program.csvFile) ) {
 
 fs.readFile(program.csvFile, 'utf8', function (err, data) {
   if (err) throw err;
-  data = data.replace(/\cm\\s*/g, "\n");
+  data = data.replace(/\cm[\r\n]*/g, "\n");
   //console.log(data);
   var records = csv.parseCSV(data);
 
@@ -58,11 +58,14 @@ fs.readFile(program.csvFile, 'utf8', function (err, data) {
           currentSite = sites[index++];
           if ( ! currentSite[' URL '] ) throw "row " + index + " does not have a URL column " + JSON.stringify(currentSite);
           var url = currentSite[' URL ' ].trim();
+          var slug = url.replace(/[^-a-zA-Z.0-9]/g, '-').replace(/^https?/i, '').replace(/-+/g, '-').replace(/^-/, '');
+          var basefile = program.dataDir + path.sep + 'site_' + index + '_' + slug;
+
           console.log("processing site", url);
           if ( currentSite.hasOwnProperty(' Site Description ') && currentSite[' Site Description '].match(/website/i) ) {
             var job = 'phantomjs simple.js';
             if ( program.imageFormat ) {
-              var imageFileName = program.dataDir + path.sep + buildSlug(url) + '_' + new Date().getTime() + '.' + program.imageFormat;
+              var imageFileName = basefile + '.' + program.imageFormat;
               job += ' --imageFile ' + imageFileName;  
             }
             job += ' "' + url + '"';
@@ -71,8 +74,7 @@ fs.readFile(program.csvFile, 'utf8', function (err, data) {
           //setTimeout(function() { console.log('timeout done'); wf.processEvent('job_complete'); }, currentSite.time * 200);
             var child = exec(job, { 'maxBuffer' : 2000*1024 },
               function (error, stdout, stderr) {
-                var slug = url.replace(/[^-a-zA-Z.0-9]/g, '-').replace(/^https?/i, '').replace(/-+/g, '-').replace(/^-/, '');
-                var filename = program.dataDir + path.sep + 'site_' + index + '_' + slug + '.txt';
+                var filename = basefile + '.txt';
                 if ( fs.existsSync(filename) ) {
                   fs.unlinkSync(filename);
                 }
