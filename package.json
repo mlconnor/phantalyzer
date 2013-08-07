@@ -1,6 +1,6 @@
 {
   "name": "phantalyzer",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "A PhantomJS script for running Wappalyzer over many sites using a headless Webkit browser",
   "main": "phantalyzer.js",
   "dependencies": {

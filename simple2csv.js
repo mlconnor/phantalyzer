@@ -46,7 +46,7 @@ if ( ! fs.existsSync(program.csvFile) ) {
   process.exit(1);
 }
 var csvFile = fs.readFileSync(program.csvFile, 'utf8');
-csvFile = csvFile.replace(/\cm/g, "\n");
+csvFile = csvFile.replace(/\cm/g, "");
 
 var sites = [];
 try {
