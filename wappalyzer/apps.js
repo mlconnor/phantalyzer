@@ -958,6 +958,10 @@
 			cats: [ 10 ],
 			html: /sitestat\(("|')http:\/\/nl\.sitestat\.com/
 		},
+		'NetBiscuits': {
+			cats: [ 26 ],
+			script: /netbiscuits/i
+		},
 		'Netmonitor': {
 			cats: [ 10 ],
 			script: /netmonitor\.fi\/nmtracker\.js/,
