@@ -71,7 +71,7 @@ for ( var i = 0; i < sites.length; i++ ) {
   //console.log("record [" + i + "] ", site[' URL ' ]);
   var file = U.filter(files, function(entry) {
     // the i+1 is due to a bug in the crawler
-    return entry.indexOf('site_' + (i+1) + '_') == 0;
+    return entry.indexOf('site_' + (i+1) + '_') == 0 && entry.match(/\.txt$/i);
   });
 
   var row = [];
