@@ -1,11 +1,41 @@
 {
+    "Requested URL" : {
+        "pattern" : "^requestedUrl: ([^$]+?)$",
+        "modifiers" : "m",
+        "hit" : "{{1}}",
+        "miss" : "report missing" 
+    },
     "Page URL" : {
         "pattern" : "^pageUrl: ([^$]+?)$",
         "modifiers" : "m",
         "hit" : "{{1}}",
         "miss" : "miss" 
     },
-    "PageLoad" : {
+    "Page Error" : {
+        "pattern" : "^pageError: ([^$]+?)$",
+        "modifiers" : "m",
+        "hit" : "{{1}}",
+        "miss" : "" 
+    },
+    "Page Error Detail" : {
+        "pattern" : "^pageUrl: ([^$]+?)$",
+        "modifiers" : "m",
+        "hit" : "{{1}}",
+        "miss" : "" 
+    },
+    "Domain Change" : {
+        "pattern" : "^domainChange:",
+        "modifiers" : "",
+        "hit" : "true",
+        "miss" : "" 
+    },
+    "Domain TLD Change" : {
+        "pattern" : "^domainTLDChange:",
+        "modifiers" : "",
+        "hit" : "true",
+        "miss" : "" 
+    },
+   "PageLoad" : {
         "pattern" : "^pageLoadTimeMillis: (\\d+)",
         "modifiers" : "m",
         "hit" : "{{1}}",

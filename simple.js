@@ -5,6 +5,7 @@ var        S = require('string');
 var        U = require('underscore');
 var   system = require('system');
 var       fs = require('fs'); //http://code.google.com/p/phantomjs/source/browse/test/fs-spec-01.js?r=c22dfdc576fccd20db53e11a92cb349aa3cd0b2b
+//var   urlLib = require('url');
 
 var page = require('webpage').create();
 var basePageReached = false;
@@ -44,11 +45,14 @@ if ( U.has(argMap, "imageFile") ) {
   }
 }
 
+var timeoutMs = 15000;
+
 var timerId = setTimeout(function() {
-  console.log('closing page ' + url + ' due to timeout');
+  //console.log('closing page ' + url + ' due to timeout');
+  console.log('pageError: timeout');
   page.close();
   phantom.exit();
-}, 15000);
+}, timeoutMs);
 
 page.onError = function(msg, trace) {
   console.log('error: ' + msg + ' trace=' + JSON.stringify(trace));
@@ -111,26 +115,52 @@ page.onResourceReceived = function(resource) {
     var isRedirect = U.indexOf([301, 302, 303, 307, 308], resource.status) >= 0;
     if ( ! isRedirect ) {
       basePageReached = true;
+      console.log('pageHttpCode: ' + resource.status);
+      console.log("pageUrl: " + resource.url);
       if ( resource.status < 200 || resource.status > 226 ) {
-	console.log("resourceReceivedError: " + JSON.stringify(resource));
+	console.log("pageError: " + resource.status);
+        console.log("pageErrorDetail: " + JSON.stringify(resource));
 	destinationError = true;
       } else {
 	// found the base page
 	resolvedUrl = resource.url;  
-	console.log("pageUrl: " + resource.url);
-	console.log("pageHttpCode: " + resource.status);
 	for (var i = 0; i < resource.headers.length; i++) {
 	  //console.log('HEADER=' + resource.headers[i].name + ': ' + resource.headers[i].value);
 	  console.log("resourceHeader: " + resource.url + ' name=' + resource.headers[i].name + 
 	      ' value=' + resource.headers[i].value);
           headers[resource.headers[i].name] = resource.headers[i].value;
 	}
+
+        /* let's take a look at the domain requested and the path requested */
+        try {
+          var parsedReqUrl = parseUri(url);
+          var parsedResUrl = parseUri(resolvedUrl);
+
+          console.log('requestedUrlDomain: ' + parsedReqUrl.host);
+          console.log('resolvedUrlDomain: ' + parsedResUrl.host);
+
+          var urlHostArr = parsedReqUrl.host.split(/\./);
+          var resHostArr = parsedResUrl.host.split(/\./);
+
+          //console.log('XXX ' + resHostArr);
+
+          if ( urlHostArr.pop() != resHostArr.pop() ) {
+            console.log('domainTLDChange: true');
+          }
+          if ( ! urlHostArr.pop() != resHostArr.pop() ) {
+            console.log('domainChange: true');
+          }
+        } catch (error) {
+          console.log(error);
+        }
       }
     } else {
       console.log("page.redirect.code: " + resource.status);
     }
   }
 }
+
+console.log("requestedUrl: " + url);
 
 page.open(url, function (status) {
   //Page is loaded!
@@ -245,4 +275,32 @@ function fixNoScript(content) {
   return content;
 }
 
+function parseUri (str) {
 
+  var options = {
+    strictMode: false,
+    key: ["source","protocol","authority","userInfo","user","password","host","port","relative","path","directory","file","query","anchor"],
+    q:   {
+      name:   "queryKey",
+      parser: /(?:^|&)([^&=]*)=?([^&]*)/g
+    },
+    parser: {
+      strict: /^(?:([^:\/?#]+):)?(?:\/\/((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?))?((((?:[^?#\/]*\/)*)([^?#]*))(?:\?([^#]*))?(?:#(.*))?)/,
+      loose:  /^(?:(?![^:@]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/)?((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/
+    }
+  };
+
+  var	o   = options,
+	m   = o.parser[o.strictMode ? "strict" : "loose"].exec(str),
+	uri = {},
+	i   = 14;
+
+  while (i--) uri[o.key[i]] = m[i] || "";
+
+  uri[o.q.name] = {};
+  uri[o.key[12]].replace(o.q.parser, function ($0, $1, $2) {
+    if ($1) uri[o.q.name][$1] = $2;
+  });
+
+  return uri;
+};
