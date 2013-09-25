@@ -63,7 +63,7 @@ fs.readFile(program.csvFile, 'utf8', function (err, data) {
           var basefile = program.dataDir + path.sep + 'site_' + index + '_' + slug;
 
           console.log("processing site", url);
-          if ( currentSite.hasOwnProperty(' Site Description ') && currentSite[' Site Description '].match(/website/i) ) {
+          if ( currentSite.hasOwnProperty('Site Description') && currentSite['Site Description'].match(/website/i) ) {
             var job = 'phantomjs simple.js';
             if ( program.imageFormat ) {
               var imageFileName = basefile + '.' + program.imageFormat;
