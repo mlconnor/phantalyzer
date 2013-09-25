@@ -182,8 +182,14 @@
     },
     "Netbiscuits" : {
         "pattern":"Netbiscuits",
-        "moodifiers" : "i",
+        "modifiers" : "i",
         "hit"        : "yes",
+        "false"      : ""
+    },
+    "Detected Apps" : {
+        "pattern" : "^detectedApps: ([^$]+?)$",
+        "modifiers" : "m",
+        "hit"       : "{{1}}",
         "false"      : ""
     }
 }
