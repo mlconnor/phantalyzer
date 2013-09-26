@@ -18,9 +18,9 @@
         "miss" : "" 
     },
     "Page Error Detail" : {
-        "pattern" : "^pageUrl: ([^$]+?)$",
+        "pattern" : "^pageErrorDetail: ([^$]+?)$",
         "modifiers" : "m",
-        "hit" : "{{1}}",
+        "hit" : "",
         "miss" : "" 
     },
     "Domain Change" : {
