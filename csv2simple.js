@@ -57,13 +57,14 @@ fs.readFile(program.csvFile, 'utf8', function (err, data) {
         "to"     : "processing",
         "action" : function() {
           currentSite = sites[index++];
-          if ( ! currentSite['URL'] ) throw "row " + index + " does not have a URL column " + JSON.stringify(currentSite);
-          var url = currentSite['URL' ].trim();
-          var slug = url.replace(/[^-a-zA-Z.0-9]/g, '-').replace(/^https?/i, '').replace(/-+/g, '-').replace(/^-/, '');
-          var basefile = program.dataDir + path.sep + 'site_' + index + '_' + slug;
 
-          console.log("processing site", url);
+          console.log("processing row ", index);
           if ( currentSite.hasOwnProperty('Site Description') && currentSite['Site Description'].match(/website/i) ) {
+            if ( ! currentSite['URL'] ) throw "row " + index + " does not have a URL column " + JSON.stringify(currentSite);
+            var url = currentSite['URL' ].trim();
+            var slug = url.replace(/[^-a-zA-Z.0-9]/g, '-').replace(/^https?/i, '').replace(/-+/g, '-').replace(/^-/, '');
+            var basefile = program.dataDir + path.sep + 'site_' + index + '_' + slug;
+
             var job = 'phantomjs simple.js';
             if ( program.imageFormat ) {
               var imageFileName = basefile + '.' + program.imageFormat;
@@ -91,7 +92,7 @@ fs.readFile(program.csvFile, 'utf8', function (err, data) {
             );
             
           } else {
-            console.log("ignoring due to non-working application status... " + url);
+            console.log("ignoring due to non-working application status... ", JSON.stringify(currentSite));
             process.nextTick(function() { wf.processEvent('job_complete'); });
           }
         },
