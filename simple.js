@@ -55,7 +55,7 @@ var timerId = setTimeout(function() {
 }, timeoutMs);
 
 page.onError = function(msg, trace) {
-  console.log('error: ' + msg + ' trace=' + JSON.stringify(trace));
+  console.log('pageError: ' + msg + ' trace=' + JSON.stringify(trace));
 };
 
 page.onResourceError = function(resourceError) {
@@ -119,7 +119,7 @@ page.onResourceReceived = function(resource) {
       console.log("pageUrl: " + resource.url);
       if ( resource.status < 200 || resource.status > 226 ) {
 	console.log("pageError: " + resource.status);
-        console.log("pageErrorDetail: " + JSON.stringify(resource));
+        /*console.log("pageErrorDetail: " + JSON.sresource)); */
 	destinationError = true;
       } else {
 	// found the base page

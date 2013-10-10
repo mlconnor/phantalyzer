@@ -596,6 +596,7 @@
 		'Google Analytics': {
 			cats: [ 10 ],
 			script: /(\.google\-analytics\.com\/ga\.js|google-analytics\.com\/urchin\.js)/,
+			html: /(\.google\-analytics\.com\/ga\.js|google-analytics\.com\/urchin\.js)/,
 			env: /^gaGlobal$/
 		},
 		'Google App Engine': {
@@ -1529,7 +1530,7 @@
 		},
 		'Webtrends': {
 			cats: [ 10 ],
-			html: /<img[^>]+id=("|')DCSIMG("|')[^>]+webtrends/i,
+			html: /webtrends/i,
 			env: /^(WTOptimize|WebTrends)/i
 		},
 		'Weebly': {
