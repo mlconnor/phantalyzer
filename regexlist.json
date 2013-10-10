@@ -20,19 +20,37 @@
     "Page Error Detail" : {
         "pattern" : "^pageErrorDetail: ([^$]+?)$",
         "modifiers" : "m",
-        "hit" : "",
+        "hit" : "{{1}}",
         "miss" : "" 
+    },
+    "General Error Count": {
+        "pattern": "^error: ",
+        "modifiers": "im",
+        "hit" : "{{count}}",
+        "miss" : "0"
+    },
+    "Page Error Count": {
+        "pattern": "^pageError: ",
+        "modifiers": "im",
+        "hit" : "{{count}}",
+        "miss" : "0"
+    },
+    "Resource Error Count": {
+        "pattern": "^resourceError: ",
+        "modifiers": "im",
+        "hit" : "{{count}}",
+        "miss" : "0"
     },
     "Domain Change" : {
         "pattern" : "^domainChange:",
-        "modifiers" : "",
-        "hit" : "true",
+        "modifiers" : "m",
+        "hit" : "yes",
         "miss" : "" 
     },
     "Domain TLD Change" : {
         "pattern" : "^domainTLDChange:",
-        "modifiers" : "",
-        "hit" : "true",
+        "modifiers" : "m",
+        "hit" : "yes",
         "miss" : "" 
     },
    "PageLoad" : {
@@ -46,13 +64,7 @@
         "modifiers": "i",
         "hit" : "{{1}}",
         "miss" : ""
-    },
-    "Error Count": {
-        "pattern": "^error: ",
-        "modifiers": "im",
-        "hit" : "{{count}}",
-        "miss" : "0"
-    },
+    },  
     "Websphere": {
         "pattern": "^wappalyzerDetected: Java",
         "modifiers": "im",
@@ -187,7 +199,7 @@
         "false"      : ""
     },
     "Detected Apps" : {
-        "pattern" : "^detectedApps: ([^$]+?)$",
+        "pattern" : "^detectedApps: ([^$]*?)$",
         "modifiers" : "m",
         "hit"       : "{{1}}",
         "false"      : ""

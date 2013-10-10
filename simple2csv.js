@@ -9,8 +9,8 @@ program
   .option('-d, --dataDir <path>', 'Data directory')
   .option('-x, --regexFile <path>', 'Regex file path')
   .option('-c, --csvFile <path>', 'CVS file containing site list')
-  .option('-s, --skipRows [offset]', 'Number of rows to skip in the CSV file before the header.', parseInt, 0)
   .option('-m, --maxRows [count]', 'Max number of records to process.', parseInt, 100000)
+  .option('-u, --urlColumn <name>', 'Max number of records to process.', 'url')
   .parse(process.argv);
 
 //console.log(program);
@@ -51,8 +51,26 @@ csvFile = csvFile.replace(/\cm[\r\n]*/g, "\n");
 var sites = [];
 try {
   //var csvRecs = csv.parseCSV("a,b,c\n1,2,3");
-  var csvRecs = csv.parseCSV(csvFile);
-  sites = csv_to_obj(csvRecs.slice(program.skipRows));
+  var records = csv.parseCSV(csvFile);
+
+  var skipRows = -1;
+  /* let's look for the header.  the header is the first row that contains a column with the urlColumn in it */
+  outer:
+  for ( var rI = 0; rI < records.length; rI++ ) {
+    var record = records[rI];
+    for ( var cI = 0; cI < record.length; cI++ ) {
+      if ( record[cI] == program.urlColumn ) {
+        skipRows = rI;
+        break outer;
+      }
+    }
+  }
+
+  if ( skipRows < 0 ) {
+    throw "Unable to find a row in the data with a column matching " + program.urlColumn;
+  }
+
+  sites = csv_to_obj(records.slice(skipRows));
   //console.log(sites);
   //console.log(sites[0]);
   sites = sites.slice(0,program.maxRows);

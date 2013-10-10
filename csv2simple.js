@@ -3,6 +3,7 @@ var fs = require('fs');
 var csv = require('finite-csv');
 var exec = require('child_process').exec;
 var path = require('path');
+var util = require('util');
 
 var program = require('commander');
 
@@ -10,9 +11,9 @@ program
   .version('0.0.1')
   .option('-d, --dataDir <path>', 'Data directory')
   .option('-c, --csvFile <path>', 'CVS file containing site list')
-  .option('-s, --skipRows [offset]', 'Number of rows to skip in the CSV file before the header.', parseInt, 0)
   .option('-i, --imageFormat [format]')
   .option('-m, --maxRows [count]', 'Max number of records to process.', parseInt, 100000)
+  .option('-u, --urlColumn <name>', 'Max number of records to process.', 'url')
   .parse(process.argv);
 
 var records = null;
@@ -38,10 +39,28 @@ fs.readFile(program.csvFile, 'utf8', function (err, data) {
   //console.log(data);
   var records = csv.parseCSV(data);
 
+  var skipRows = -1;
+  /* let's look for the header.  the header is the first row that contains a column with the urlColumn in it */
+  outer:
+  for ( var rI = 0; rI < records.length; rI++ ) {
+    var record = records[rI];
+    for ( var cI = 0; cI < record.length; cI++ ) {
+      if ( record[cI] == program.urlColumn ) {
+        skipRows = rI;
+        resolvedUrlHeader = record[cI];
+        break outer;
+      }
+    }
+  }
+  
+  if ( skipRows < 0 ) {
+    throw "Unable to find a row in the data with a column matching " + program.urlColumn;
+  }
+   
   //console.log(records);
 
   // skip the first four records because yuri's spreadsheet has a header
-  records = records.slice(program.skipRows);
+  records = records.slice(skipRows);
   console.log("header record", JSON.stringify(records[0]));
 
   var sites = csv_to_obj(records);
@@ -59,9 +78,10 @@ fs.readFile(program.csvFile, 'utf8', function (err, data) {
           currentSite = sites[index++];
 
           console.log("processing row ", index);
-          if ( currentSite.hasOwnProperty('Site Description') && currentSite['Site Description'].match(/website/i) ) {
-            if ( ! currentSite['URL'] ) throw "row " + index + " does not have a URL column " + JSON.stringify(currentSite);
-            var url = currentSite['URL' ].trim();
+          if ( ! U.has(currentSite, program.urlColumn) ) throw "row " + index + " does not have a column named " + program.urlColumn + " " + JSON.stringify(currentSite);
+          var url = currentSite[program.urlColumn].trim();
+  
+          if ( url.match(/^https?:\/\//i) ) {
             var slug = url.replace(/[^-a-zA-Z.0-9]/g, '-').replace(/^https?/i, '').replace(/-+/g, '-').replace(/^-/, '');
             var basefile = program.dataDir + path.sep + 'site_' + index + '_' + slug;
 
@@ -87,12 +107,12 @@ fs.readFile(program.csvFile, 'utf8', function (err, data) {
                 if (error !== null) {
                   console.log('exec error: ' + error);
                 }
+                console.log("memory usage", util.inspect(process.memoryUsage()));
                 process.nextTick(function() { wf.processEvent('job_complete'); });
               }
-            );
-            
+            );  
           } else {
-            console.log("ignoring due to non-working application status... ", JSON.stringify(currentSite));
+            console.log('skipping ' + currentSite[program.urlColumn] + ' due to invalid URL');
             process.nextTick(function() { wf.processEvent('job_complete'); });
           }
         },
