@@ -134,8 +134,11 @@ for ( var i = 0; i < sites.length; i++ ) {
 
 for ( var r = 0; r < rows.length; r++ ) {
   for ( var c = 0; c < rows[r].length; c++ ) {
-    if ( rows[r][c].match(/"|\r|\n/m) ) {
-      rows[r][c] = '"' + rows[r][c].replace(/"/, '""') + '"';
+    /* i'm going to remove all carriage returns here */
+    rows[r][c] = rows[r][c].replace(/[\r\n]/g, " ");
+    /* if we see a double quote then we will wrap the whole column with quotes and escape the quotes within */
+    if ( rows[r][c].match(/[",]/) ) {
+      rows[r][c] = '"' + rows[r][c].replace(/"/g, '""') + '"';
     }
   }
   rows[r] = rows[r].join(',');

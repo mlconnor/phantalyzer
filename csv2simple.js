@@ -47,7 +47,6 @@ fs.readFile(program.csvFile, 'utf8', function (err, data) {
     for ( var cI = 0; cI < record.length; cI++ ) {
       if ( record[cI] == program.urlColumn ) {
         skipRows = rI;
-        resolvedUrlHeader = record[cI];
         break outer;
       }
     }
@@ -94,7 +93,7 @@ fs.readFile(program.csvFile, 'utf8', function (err, data) {
             console.log(job); 
             //process.nextTick( function() { wf.processEvent('job_complete'); });
           //setTimeout(function() { console.log('timeout done'); wf.processEvent('job_complete'); }, currentSite.time * 200);
-            var child = exec(job, { 'maxBuffer' : 2000*1024 },
+            var child = exec(job, { 'maxBuffer' : 2000*1024, 'timeout' : 30000 },
               function (error, stdout, stderr) {
                 var filename = basefile + '.txt';
                 if ( fs.existsSync(filename) ) {

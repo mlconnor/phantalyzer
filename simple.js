@@ -153,11 +153,22 @@ page.onResourceReceived = function(resource) {
               resHostArr.pop();
             }
 
-            if ( urlHostArr.pop() != resHostArr.pop() ) {
-              console.log('domainTLDChange: true');
-            }
-            if ( urlHostArr.pop() != resHostArr.pop() ) {
+            /* let's check the last two domain tokens */
+            if ( urlHostArr.pop() != resHostArr.pop() ||
+                 urlHostArr.pop() != resHostArr.pop() ) {
               console.log('domainChange: true');
+            } else {
+              /* now let's check cname tokens */
+              if ( urlHostArr.length != resHostArr.length ) {
+                console.log('cnameDomainChange: true');
+              } else {
+                while ( urlHostArray.length > 0 ) {
+                  if ( urlHostArr.pop() != resHostArr.pop() ) {
+                    console.log('cnameDomainChange: true');
+                    break;
+                  }
+                }
+              }
             }
           }
         } catch (error) {
