@@ -139,8 +139,9 @@ page.onResourceReceived = function(resource) {
           console.log('requestedUrlDomain: ' + parsedReqUrl.host);
           console.log('resolvedUrlDomain: ' + parsedResUrl.host);
 
-          var urlHostArr = parsedReqUrl.host.split(/\./);
-          var resHostArr = parsedResUrl.host.split(/\./);
+          var toLowerCase = function(item, index) { return item.toLowerCase(); };
+          var urlHostArr = U.map(parsedReqUrl.host.split(/\./), toLowerCase);
+          var resHostArr = U.map(parsedResUrl.host.split(/\./), toLowerCase);
 
           console.log('urlHostArra', urlHostArr);
           console.log('resHostArra', resHostArr);
