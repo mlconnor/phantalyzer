@@ -1,419 +1,277 @@
-// https://github.com/bellbind/using-promise-q
-// badass visualization, yslow, har files, etc. http://scriptogr.am/micmath/post/using-phantomjs-to-measure-web-page-performance
+/* the goal of this script is to open the page and spit out as much crap as possible so that
+   you can grep over it later and derive information from it. */
+var        Q = require('q');
+var        S = require('string');
+var        U = require('underscore');
+var   system = require('system');
+var       fs = require('fs'); //http://code.google.com/p/phantomjs/source/browse/test/fs-spec-01.js?r=c22dfdc576fccd20db53e11a92cb349aa3cd0b2b
+//var   urlLib = require('url');
 
-var      Q  = require('q');
-var      S  = require('string');
-var      U  = require('underscore');
-var system  = require('system');
-var     fs  = require('fs'); //http://code.google.com/p/phantomjs/source/browse/test/fs-spec-01.js?r=c22dfdc576fccd20db53e11a92cb349aa3cd0b2b
+var page = require('webpage').create();
+var basePageReached = false;
+var destinationError = false;
 
-function csvToJson(str) {
-  var data = [], i = 0, k = 0, header = [];
-  var csvLines = CSVToArray(str);
+//var url = system.args[1];
+var argMap = parseArgs().map;
+var argV   = parseArgs().v;
+var url = U.last(argV);
 
-  for ( i = 0; i < csvLines.length; i++ ) {
-    var line = csvLines[i];
-    if ( i == 0 ) {
-      header = csvLines[i];
+var headers = {};
+var startTime = new Date().getTime();
+
+/* you can pass any of these parameters in and they will override the 
+  phantom defaults.  the format is --loadImages true */
+var phantomPageProperties = {
+  "javascriptEnabled" : true,
+  "loadImages" : true,
+  "localToRemoteUrlAccessEnabled" : true,
+  "userAgent" : true,
+  "userName" : true,
+  "password" : true,
+  "XSSAuditingEnabled" : true,
+  "webSecurityEnabled" : true,
+};
+
+// defaults
+page.settings.loadImages = true;
+page.settings.webSecurityEnabled = false;
+page.settings = U.extend(page.settings, U.pick(argMap, U.keys(phantomPageProperties)) );
+console.log('settings', JSON.stringify(page.settings));
+
+if ( U.has(argMap, "imageFile") ) {
+  if ( ! argMap['imageFile'].match(/\.(jpg|jpeg|gif|png)$/i) ) {
+    console.log('error: --imageFile ' + argMap['imageFile'] + ' must be jpeg, jpg, gif, or png');
+    phantom.exit();
+  }
+}
+
+var timeoutMs = 15000;
+
+var timerId = setTimeout(function() {
+  //console.log('closing page ' + url + ' due to timeout');
+  console.log('pageError: timeout');
+  page.close();
+  phantom.exit();
+}, timeoutMs);
+
+page.onError = function(msg, trace) {
+  console.log('pageError: ' + msg + ' trace=' + JSON.stringify(trace));
+};
+
+page.onResourceError = function(resourceError) {
+  console.log('resourceError: ' + resourceError.url + ' errorCode=' + resourceError.errorCode + 
+              ' errorString=' + resourceError.errorString);
+};
+
+var timerId = setTimeout(function() {
+  console.log('error: page load timed out');
+  page.close();
+}, 30000);
+
+function parseArgs() {
+  var args = { map:{},v:[] };
+
+  var argv = [];
+  for ( var i = 1; i < system.args.length; i++ ) {
+    if ( i < system.args.length - 1 && system.args[i].match(/^--.+/) ) {
+      var argVal = system.args[i+1];
+      if ( argVal == 'false' ) argVal = false;
+      if ( argVal == 'true' ) argVal = true;
+      args.map[system.args[i].substring(2)] = argVal;
+      i++;
     } else {
-      var obj = {};
-      for ( k = 0; k < header.length; k++ ) {
-        if ( k < csvLines[i].length ) {
-          obj[header[k]] = csvLines[i][k];
-        }
+      args.v.push(system.args[i]);
+    }
+  }
+  return args;
+}
+
+page.onResourceRequested = function (request, requestController) {
+  for ( var prop in request ) {
+    if ( prop == 'headers' ) {
+      var headers = request['headers'];
+      for ( var k = 0; k < headers.length; k++ ) {
+        console.log('resourceRequested.header.' + headers[k].name + ': ' + headers[k].value);
       }
-      data.push(obj);
-    }  
-  }
-  return data;
-}
-
-// This will parse a delimited string into an array of
-// arrays. The default delimiter is the comma, but this
-// can be overriden in the second argument.
-function CSVToArray( strData, strDelimiter ){
-  // Check to see if the delimiter is defined. If not,
-  // then default to comma.
-  strDelimiter = (strDelimiter || ",");
-
-  // Create a regular expression to parse the CSV values.
-  var objPattern = new RegExp(
-      (
-       // Delimiters.
-       "(\\" + strDelimiter + "|\\r?\\n|\\r|^)" +
-
-       // Quoted fields.
-       "(?:\"([^\"]*(?:\"\"[^\"]*)*)\"|" +
-
-       // Standard fields.
-       "([^\"\\" + strDelimiter + "\\r\\n]*))"
-      ),
-      "gi"
-      );
-
-  // Create an array to hold our data. Give the array
-  // a default empty first row.
-  var arrData = [[]];
-
-  // Create an array to hold our individual pattern
-  // matching groups.
-  var arrMatches = null;
-
-
-  // Keep looping over the regular expression matches
-  // until we can no longer find a match.
-  while (arrMatches = objPattern.exec( strData )){
-
-    // Get the delimiter that was found.
-    var strMatchedDelimiter = arrMatches[ 1 ];
-
-    // Check to see if the given delimiter has a length
-    // (is not the start of string) and if it matches
-    // field delimiter. If id does not, then we know
-    // that this delimiter is a row delimiter.
-    if (
-	strMatchedDelimiter.length &&
-	(strMatchedDelimiter != strDelimiter)
-       ){
-
-      // Since we have reached a new row of data,
-      // add an empty row to our data array.
-      arrData.push( [] );
-
-    }
-
-    // Now that we have our delimiter out of the way,
-    // let's check to see which kind of value we
-    // captured (quoted or unquoted).
-    if (arrMatches[ 2 ]){
-
-      // We found a quoted value. When we capture
-      // this value, unescape any double quotes.
-      var strMatchedValue = arrMatches[ 2 ].replace(
-	  new RegExp( "\"\"", "g" ),
-	  "\""
-	  );
-
     } else {
-
-      // We found a non-quoted value.
-      var strMatchedValue = arrMatches[ 3 ];
-
+      console.log('resourceRequested.' + prop + ': ' + request[prop]);
     }
-
-    // Now that we have our value string, let's add
-    // it to the data array.
-    arrData[ arrData.length - 1 ].push( strMatchedValue );
   }
+  //console.log('resourceRequested: ', JSON.stringify(request, undefined, 2));
 
-  // Return the parsed data.
-  return( arrData );
-}
-
-
-/**
- * Lambda to build a handler for the PhantomJS
- * resource requested handler
- */
-function buildResourceRequested(resourcePage, destination) {
-  return function(resource) {
-    //var mimeType = mime.lookup('htm');
-    //console.log('Mime: ' + mimeType + ' URL=' + resource.url);
-  }
-}
+  //console.log("PAGE REQUEST", JSON.stringify(page, undefined, 2));
+};
 
 /**
  * Lambda to build a handler for the PhantomJS
  * resource received handler
  */
-function buildResourceReceived(resourcePage, destination) {
-  return function(resource) {
+page.onResourceReceived = function(resource) {
 
- 
-    //var mimeType = Mime.lookup(resource.url);
-
-    //console.log('RECEIVED ' + JSON.stringify(resource));
-
-   /************************************************************************
-    * we are going to check which kind of resource this is.  i break this
-    * up into a few broad catgories that i care about.
-    ************************************************************************/
-    var typeCategories = {
-      "Javascript" : /javascript/i,
-      "Flash"      : /flash/i,
-      "CSS"        : /css/i,
-      "HTML"       : /html/i,
-      "Video"      : /video/i,
-      "Audio"      : /audio/i,
-      "Images"     : /image/i,
-      "Data"       : /(json|xm|csv)/i,
-      "Other"      : /.?/
-    };
-
-    if ( U.has(resource, 'bodySize') && U.has(resource, 'contentType') ) {
-
-      var category = U.find(U.keys(typeCategories), function(category) {
-        //console.log('MATCH=' + category + " regex=" + typeCategories[category] + " CT=" + resource.contentType);
-        var contentType = resource.contentType == null ? '' : resource.contentType;
-        return contentType.match(typeCategories[category]);
-      });
-      //console.log("CAT=" + category + " RES=" + JSON.stringify(resource));
-      if ( category ) {
-        if ( ! U.has(destination.resourceTypes, category) ) {
-          destination.resourceTypes[category] = resource.bodySize;
-        } else {
-          destination.resourceTypes[category] = resource.bodySize + destination.resourceTypes[category];
-        }
+  console.log('resourceReceived: ' + resource.url); 
+  // we are trying to find the base page and determine
+  // if the status code was successful
+  if ( ! basePageReached ) {
+    var isRedirect = U.indexOf([301, 302, 303, 307, 308], resource.status) >= 0;
+    if ( ! isRedirect ) {
+      basePageReached = true;
+      console.log('pageHttpCode: ' + resource.status);
+      console.log("pageUrl: " + resource.url);
+      if ( resource.status < 200 || resource.status > 226 ) {
+	console.log("pageError: " + resource.status);
+        /*console.log("pageErrorDetail: " + JSON.sresource)); */
+	destinationError = true;
       } else {
-        console.log('Unable to resolve category for ' + resource.contentType);
-      }
-    }
+	// found the base page
+	resolvedUrl = resource.url;  
+	for (var i = 0; i < resource.headers.length; i++) {
+	  //console.log('HEADER=' + resource.headers[i].name + ': ' + resource.headers[i].value);
+	  console.log("resourceHeader: " + resource.url + ' name=' + resource.headers[i].name + 
+	      ' value=' + resource.headers[i].value);
+          headers[resource.headers[i].name] = resource.headers[i].value;
+	}
 
-    // we are trying to find the base page and determine
-    // if the status code was successful
-    if ( ! destination.pageBaseReached ) {
-      var isRedirect = U.indexOf([301, 302, 303, 307, 308], resource.status) >= 0;
-      if ( ! isRedirect ) {
-        destination.pageBaseReached = true;
-        if ( resource.status < 200 || resource.status > 226 ) {
-          console.log("resourceReceived Error: " + JSON.stringify(resource));
-          destination.error = true;
-        } else {
-          // found the base page
-          destination.resolvedUrl = resource.url;  
-          console.log("Found base page [" + resource.url + "] with HTTP Status " + resource.status);
-          for (var i = 0; i < resource.headers.length; i++) {
-            //console.log('HEADER=' + resource.headers[i].name + ': ' + resource.headers[i].value);
-            destination.headers[resource.headers[i].name] = resource.headers[i].value;
+        /* let's take a look at the domain requested and the path requested */
+        try {
+          var parsedReqUrl = parseUri(url);
+          var parsedResUrl = parseUri(resolvedUrl);
+
+          console.log('requestedUrlDomain: ' + parsedReqUrl.host);
+          console.log('resolvedUrlDomain: ' + parsedResUrl.host);
+
+          var toLowerCase = function(item, index) { return item.toLowerCase(); };
+          var urlHostArr = U.map(parsedReqUrl.host.split(/\./), toLowerCase);
+          var resHostArr = U.map(parsedResUrl.host.split(/\./), toLowerCase);
+
+          console.log('urlHostArra', urlHostArr);
+          console.log('resHostArra', resHostArr);
+
+          if ( urlHostArr.length > 0 && resHostArr.length > 0 ) {
+            var lastUrlToken = urlHostArr[urlHostArr.length - 1];
+            var lastResToken = resHostArr[resHostArr.length - 1];
+            if ( lastUrlToken == lastResToken && lastUrlToken.match(/^(?:AC|AD|AE|AF|AG|AI|AL|AM|AN|AO|AQ|AR|AS|AT|AU|AW|AX|AZ|BA|BB|BD|BE|BF|BG|BH|BI|BJ|BL|BM|BN|BO|BQ|BR|BS|BT|BV|BW|BY|BZ|CA|CC|CD|CF|CG|CH|CI|CK|CL|CM|CN|CO|CR|CU|CV|CW|CX|CY|CZ|DE|DJ|DK|DM|DO|DZ|EC|EE|EG|EH|ER|ES|ET|EU|FI|FJ|FK|FM|FO|FR|GA|GB|GD|GE|GF|GG|GH|GI|GL|GM|GN|GP|GQ|GR|GS|GT|GU|GW|GY|HK|HM|HN|HR|HT|HU|ID|IE|IL|IM|IN|IO|IQ|IR|IS|IT|JE|JM|JO|JP|KE|KG|KH|KI|KM|KN|KP|KR|KW|KY|KZ|LA|LB|LC|LI|LK|LR|LS|LT|LU|LV|LY|MA|MC|MD|ME|MF|MG|MH|MK|ML|MM|MN|MO|MP|MQ|MR|MS|MT|MU|MV|MW|MX|MY|MZ|NA|NC|NE|NF|NG|NI|NL|NO|NP|NR|NU|NZ|OM|PA|PE|PF|PG|PH|PK|PL|PM|PN|PR|PS|PT|PW|PY|QA|RE|RO|RS|RU|RW|SA|SB|SC|SD|SE|SG|SH|SI|SJ|SK|SL|SM|SN|SO|SR|ST|SU|SV|SX|SY|SZ|TC|TD|TF|TG|TH|TJ|TK|TL|TM|TN|TO|TP|TR|TT|TV|TW|TZ|UA|UG|UK|UM|US|UY|UZ|VA|VC|VE|VG|VI|VN|VU|WF|WS|YE|YT|ZA|ZM|ZW)$/i) ) {
+              urlHostArr.pop();
+              resHostArr.pop();
+            }
+
+            /* let's check the last two domain tokens */
+            if ( urlHostArr.pop() != resHostArr.pop() ||
+                 urlHostArr.pop() != resHostArr.pop() ) {
+              console.log('domainChange: true');
+            } else {
+              /* now let's check cname tokens */
+              if ( urlHostArr.length != resHostArr.length ) {
+                console.log('cnameDomainChange: true');
+              } else {
+                while ( urlHostArray.length > 0 ) {
+                  if ( urlHostArr.pop() != resHostArr.pop() ) {
+                    console.log('cnameDomainChange: true');
+                    break;
+                  }
+                }
+              }
+            }
           }
+        } catch (error) {
+          console.log(error);
         }
       }
+    } else {
+      console.log("page.redirect.code: " + resource.status);
     }
-  };
+  }
 }
 
-/**
- * Creates an onLoadFinished handler
- * for Phantom for a specific destination.
- */
-//function buildOnLoadFinished(page, destination) {
-//    return function(status) {
-//
-//    if ( ! destination.error ) {
-//      console.log('onLoadFinished creating image file for dest ' + destination.url + ' while resolved is ' + destination.resolvedUrl);
-//      // create a file system friendly name for the url.
-//      // i originally wanted to use the resolved url but
-//      // if the page has an error then we don't get a resolved
-//      // url.  i think at some point we should move towards
-//      // resolved url but have to think through the edge cases.
-//      //destination.imageName = buildSlug(destination.url) + '.png';
-//      destination.imageName = outputDir + buildSlug(destination.url) + '_' + new Date().getTime() + '.png';
-//      console.log('writing image for ' + destination.url + ' as ' + destination.imageName);
-//      page.render(destination.imageName);
-//    }
-//  }
-//}
+console.log("requestedUrl: " + url);
 
-/**
- * String has a slugify() method
- */
-function buildSlug(url) {
-  return url.trim()
-         .replace(/[^\w\s-]/g, '')
-         .replace(/[-\s]+/g, '-')
-         .toLowerCase()
-         .replace(/^http/g, '');
-} 
+page.open(url, function (status) {
+  //Page is loaded!
+  clearTimeout(timerId);
+  //console.log('pageStatus: ' + status);
+  //console.log('error: ' + destinationError);
+  //console.log('page loaded. status=' + resource + ' for url ' + url);
+  //console.log(page.content);
+  //var cleanContent = fixNoScript(page.content);
+  var pageContent = page.content;
+  pageContent = page.content.replace(/\s*/, ' ');
+  console.log('pageContent: ' + pageContent);
 
-/**
- * This will create a destination for either a string url or an object
- * record that was read from disk. 
- */
-function createDestination(site) {
-  //console.log('CREATING SITE ' + JSON.stringify(site));
-  var destination = {
-    name           : "",
-    url            : null,
-    acceptLanguage : null,
-    userAgent      : null,
-    title          : "",
-    resolvedUrl    : "",
-    accessTime     : new Date().getTime(),
-    pageLoadTime   : 0,
-    error          : false,
-    errorMsg       : "",
-    imageName      : "",
-    detected       : [],
-    resourceTypes  : {},
-    
-    // anything below this line will is considered working variables that
-    // will not be serialized.
-    headers        : {}
-  };
+  /* ok, let's inject the wappalyzer stuff */
+  page.injectJs('wappalyzer/wappalyzer.js');
+  page.injectJs('wappalyzer/apps.js');
+  page.injectJs('wappalyzer/driver.js');
 
-  // this will take the first four keys off the top.  these are the customizable fields.
-  var customizableFields = U.keys(destination).slice(0,4);
-  //console.log('custom fields=' + JSON.stringify(customizableFields));
+  var detectedApps = page.evaluate(function (url, headers, pageContent) {
 
-  if ( U.isObject(site) ) {
-    site = U.pick(site, customizableFields);
-    U.extend(destination, site);
-  } else {
-    destination.url = site;
-  }
-
-  //console.log('SITE RESULT=' + JSON.stringify(destination));
-
-  destination.pageBaseReached = false;
-  return destination;
-}  
-
-var visit = function createPhantomPromise(destination) {
-  var deferred = Q.defer();
-  var page = require('webpage').create();
-  page.customHeaders = { 'Accept-Encoding' : '' };
-
-  if ( U.has(destination, 'userAgent') && U.isString(destination['userAgent']) && destination['userAgent'].trim().length > 0 ) {
-    page.settings.userAgent = destination['userAgent'];
-    console.log('Setting userAgent for site to ' + destination['userAgent']);
-  } else {
-    page.settings.userAgent = 'Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US) AppleWebKit/533.20.25 (KHTML, like Gecko) Version/5.0.4 Safari/533.20.27';
-  }
-
-  if ( U.has(destination, 'acceptLanguage') && U.isString(destination['acceptLanguage']) && destination['acceptLanguage'].trim().length > 0 ) {
-    page.settings.userAgent = destination['acceptLanguage'];
-    console.log('Setting acceptLanguage for site to ' + destination['acceptLanguage']);
-  } else {
-    page.settings.userAgent = 'en-us';
-  }
-
-  page.viewportSize = {                 width:1000, height:800 };
-  page.clipRect     = { top: 0, left:0, width:1000, height:800 }; 
-  page.onResourceReceived  = buildResourceReceived(page, destination);
-  page.onResourceRequested = buildResourceRequested(page, destination);
-  //page.onLoadFinished      = buildOnLoadFinished(page, destination);
-
-  page.onConsoleMessage = function(msg, lineNum, sourceId) {
-    console.log('        CONSOLE: ' + msg + ' (from line #' + lineNum + ' in "' + sourceId + '")');
-  };
+    pageContent = document.getElementsByTagName('html')[0].innerHTML;
  
-  var timerId = setTimeout(function() {
-    console.log('closing page ' + destination.url + ' due to timeout');
-    page.close();
-    destination.error = "Timeout";
-    deferred.resolve();
-  }, 30000);
- 
-  destination.accessTime = new Date().getTime();
+    // the env property of wappalyzer is elusive because with phantomjs we
+    // don't yet have the ability to get the source of all of the scripts
+    // that are loaded without doing the work of going out separately to get them.
+    // we can do that later but in the mean time we are going to pass in the source for all
+    // of the script elements.
 
-  page.open(destination.url, function(status) {
-    clearTimeout(timerId);
-    destination.pageLoadTime = (new Date().getTime()) - destination.accessTime;
-
-    console.log('opened page ' + destination.url + ' status: ' + status + " Reporting error=" + destination.error + ' loadTime=' + destination.pageLoadTime + 'ms');
-
-    destination.title = page.evaluate(function () {
-      return document.title;
+    var env = [];
+    for(var env_var in window) { 
+      if ( window.hasOwnProperty(env_var)) {
+        env.push(env_var);
+      } 
+    }
+    //console.log('ENV VARS=' + env);
+    wappalyzer.analyze(url, url, {
+      html: pageContent,
+      headers: headers,
+      env: env
     });
-    //destination.title = S(destination.title).decodeHTMLEntities().s;
 
-    if ( destination.error ) {
-      deferred.resolve();
-      return;
-    }
+    //console.log('HTML=' + document.getElementsByTagName('html')[0].innerHTML);
+    console.log('info: ' + url + '] finished with eval on wappalyzer');
 
-    page.injectJs('wappalyzer/wappalyzer.js');
-    page.injectJs('wappalyzer/apps.js');
-    page.injectJs('wappalyzer/driver.js');
-
-    var fixedPageContent = fixNoScript(page.content);
-    //console.log("PAGE IS " + fixedPageContent);
-
-    var detectedApps = page.evaluate(function (dest, pageContent) {
-
-      pageContent = document.getElementsByTagName('html')[0].innerHTML;
-      //console.log(pageContent);
-      //console.log('wap=' + wappalyzer.displayApps());
-      //console.log('LAMBDA HEADERS=' + JSON.stringify(destination.headers));
-  
-      // the env property of wappalyzer is elusive because with phantomjs we
-      // don't yet have the ability to get the source of all of the scripts
-      // that are loaded without doing the work of going out separately to get them.
-      // we can do that later but in the mean time we are going to pass in the source for all
-      // of the script elements.
-
-      var env = [];
-      for(var env_var in window) { 
-        if ( window.hasOwnProperty(env_var)) {
-          env.push(env_var);
-        } 
+    var apps = [];
+    wappalyzer.detected[url].map(function(app) {
+      if ( wappalyzer.apps[app] ) {
+        //var cats = wappalyer.apps[app].cats;
+        apps.push(app);
       }
-      //console.log('ENV VARS=' + env);
-      wappalyzer.analyze(dest.url, dest.url, {
-        html: pageContent,
-        headers: dest.headers,
-        env: env
-      });
+    });
 
-      //console.log('HTML=' + document.getElementsByTagName('html')[0].innerHTML);
-      console.log('[' + dest.url + '] finished with eval on wappalyzer');
-
-      var apps = [];
-      wappalyzer.detected[dest.url].map(function(app) {
-        if ( wappalyzer.apps[app] ) {
-          apps.push(app);
-        }
-      });
-
-      // the return value has to be a primitive because
-      // this shit is completely sandboxed.
-      // i tried to JSON.stringify this but some of the sites
-      // have hijacked stringify (prototype i think) and jacked it
-      // up.  so i'm going to just do a join.
-      return apps.join('|');
+    // the return value has to be a primitive because
+    // this shit is completely sandboxed.
+    // i tried to JSON.stringify this but some of the sites
+    // have hijacked stringify (prototype i think) and jacked it
+    // up.  so i'm going to just do a join.
+    return apps.join('|');
         
-    }, destination, fixedPageContent);
+  }, url, headers, pageContent);
 
-    // so the return value here is a pipe separated string of apps that are
-    // matching for the page.  let's go ahead and cram them back into the destination
-    // so that when we write it back out we will have that info.
-    destination.detected = detectedApps.split('|'); 
+  console.log('detectedApps: ' + detectedApps);
 
-    destination.error = false;
+  // so the return value here is a pipe separated string of apps that are
+  // matching for the page.  let's go ahead and cram them back into the destination
+  // so that when we write it back out we will have that info.
+  var detected = detectedApps.split('|');
+  for ( var i = 0; i < detected.length; i++ ) {
+    console.log('wappalyzerDetected: ' + detected[i]);
+  }
 
+  console.log('pageLoadTimeMillis: ' + (new Date().getTime() - startTime));
 
-    console.log('onLoadFinished creating image file for dest ' + destination.url + ' while resolved is ' + destination.resolvedUrl);
-    // create a file system friendly name for the url.
-    // i originally wanted to use the resolved url but
-    // if the page has an error then we don't get a resolved
-    // url.  i think at some point we should move towards
-    // resolved url but have to think through the edge cases.
-    // destination.imageName = buildSlug(destination.url) + '.png';
-    window.setTimeout((function() {
-      destination.imageName = buildSlug(destination.url) + '_' + new Date().getTime() + '.png';
-      var imageFile = outputDir + '/' + destination.imageName;
-      console.log('writing image for ' + destination.url + ' as ' + imageFile);
-      page.render(imageFile);
-      console.log('page open complete for ' + destination.url);
-     
-      page.close();
-      deferred.resolve();
-    }), 5000);
-  });
-
-  page.onError = function(msg, trace) {
-    console.log('page threw an error with msg=' + msg + ' ' + JSON.stringify(trace));
-
-    // i'm not sre
-    //deferred.reject(msg);
-    //page.close();
-    destination.error = true;
-    destination.errorMsg = msg;
-  };
-  console.log('lambda done for ' + destination.url);
-
-  return deferred.promise;
-}
+  if ( U.has(argMap, 'imageFile') ) {
+    try {
+      window.setTimeout((function() {
+        page.render(argMap['imageFile']);
+        console.log('screenShotPath: ' + argMap['imageFile']);
+        page.close();
+        phantom.exit();
+      }), 5000);
+    } catch (e) {
+      console.log('error saving image', e);
+    }
+  } else {
+    page.close();
+    phantom.exit();
+  }
+});
 
 /**
  * There is a PhantomJS but that seems to 
@@ -439,187 +297,32 @@ function fixNoScript(content) {
   return content;
 }
 
-/**
- * let's process the argv.  i tried to use commander and optimist but they seem to be
- * hopelessly tied to node.js.  so i'm going to have to hack some crap here.
- */
-function parseArgs() {
-  var args = { map:{},v:[] };
+function parseUri (str) {
 
-  var argv = [];
-  for ( var i = 1; i < system.args.length; i++ ) {
-    if ( i < system.args.length - 1 && system.args[i].match(/^--.+/) ) {
-      args.map[system.args[i].substring(2)] = system.args[i+1];
-      i++;
-    } else {
-      args.v.push(system.args[i]);
+  var options = {
+    strictMode: false,
+    key: ["source","protocol","authority","userInfo","user","password","host","port","relative","path","directory","file","query","anchor"],
+    q:   {
+      name:   "queryKey",
+      parser: /(?:^|&)([^&=]*)=?([^&]*)/g
+    },
+    parser: {
+      strict: /^(?:([^:\/?#]+):)?(?:\/\/((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?))?((((?:[^?#\/]*\/)*)([^?#]*))(?:\?([^#]*))?(?:#(.*))?)/,
+      loose:  /^(?:(?![^:@]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/)?((?:(([^:@]*)(?::([^:@]*))?)?@)?([^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/
     }
-  }
-  return args;
-}
+  };
 
-function getSiteList(options, adHocSites) {
+  var	o   = options,
+	m   = o.parser[o.strictMode ? "strict" : "loose"].exec(str),
+	uri = {},
+	i   = 14;
 
-  var destinations = [];
+  while (i--) uri[o.key[i]] = m[i] || "";
 
-  if ( U.has(options, 'sitefile') ) {
-    var siteFile = options['sitefile'];
-
-   // console.log(JSON.stringify(sites));
-
-    // so they added a file.  let's read it
-
-    if ( fs.exists(siteFile) ) {
-      var csvData = fs.read(siteFile);
-      var sites = csvToJson(csvData);
-      var maxSites = sites.length;
-
-      if ( U.has(options, 'maxsites') ) {
-        if ( ! options['maxsites'].match(/[0-9]+/) ) {
-          console.log('Error: -n option must be an integer');
-          phantomjs.exit();
-        }
-        var maxSitesParam = parseInt(options['maxsites']);
-        if ( maxSitesParam > 0 ) {
-          maxSites = Math.min(sites.length, maxSitesParam);
-          console.log('Max sites set to process is ' + maxSites);
-        }
-      }
-
-      //console.log(JSON.stringify(sites));
-      for ( var i = 0; i < maxSites; i++ ) {
-        //var urlMatch = /(http|https):\/\/[^\s"',]+/gi;
-        var site = sites[i];
-        if ( U.has(site, 'url') && site['url'].match(/^http/i) ) {
-          destinations.push(createDestination(sites[i]));
-        } else {
-          console.log('Skipping record because url does not start with http so it was assumed to be not valid ' + JSON.stringify(sites[i]));
-        }
-      }
-    } else {
-      throw 'unable to find data file ' + siteFile;
-    }
-  }
-
-  console.log(JSON.stringify(destinations));
-
-  // we are going to add each url passed on the command line to the todo list.
-  adHocSites.forEach(function(element, index, array) {
-    console.log('adding ' + element + ' to the data set');
-    destinations.push(createDestination(element));
+  uri[o.q.name] = {};
+  uri[o.key[12]].replace(o.q.parser, function ($0, $1, $2) {
+    if ($1) uri[o.q.name][$1] = $2;
   });
-  return destinations;
-}
 
-/****************************************************************************************************
- * Program start
- ****************************************************************************************************/
-
-var defaultOptions = {
-  'sitefile'  : 'sites.csv',
-  'outputdir' : './data',
-  'maxsites'  : 0,
-  'imgext'    : 'png'
+  return uri;
 };
-
-var args = parseArgs();
-var options = U.defaults(args.map, defaultOptions);
-
-console.log('run options: ' + JSON.stringify(options));
-
-var siteInfo = getSiteList(options, args.v);
-
-var outputDir = options['outputdir'];
-
-if ( ! fs.exists(outputDir) ) {
-  console.log('Fatal Error: the output directory ' + outputDir + ' does not exist');
-  phantom.exit();
-}  
-
-//console.log(JSON.stringify(siteInfo));
-
-var current = {};
-
-// let's get rid of any sites that don't have a url
-siteInfo = U.filter(siteInfo, function(site) {
-  return site['url'] != null
-      && U.isString(site['url'])
-      && site['url'].match(/^\s*http/i); 
-});
-
-for ( var i = 0; i < siteInfo.length; i++ ) {
-  if ( i == 0 ) {
-    current = visit(siteInfo[i]);
-  } else {
-    // the promise construction requries us to return a function.
-    // the infamous loop problem (http://robertnyman.com/2008/10/09/explaining-javascript-scope-and-closures/)
-    // requires us to wrap *that* in a function to preserve the variable.
-    // this may need to be revisited.  not suer if the inner is necessary.     
-    current = current.then(
-      function(site) {
-        return function() {
-          //console.log('url === ' + url);
-          return visit(site);
-        }
-      }(siteInfo[i])
-    );
-  }
-}
-
-// let's write out all of the information we received
-current.then(function() {
-  console.log('wrapping up... writing files');
-
-//  for ( var i = 0; i < siteInfo.length; i++ ) {
-//    try {
-//      console.log('writing results for ' + siteInfo[i].url + ' to disk...');
-//      siteInfo[i] = U.pick(siteInfo[i], 'url', 'resolvedUrl', 'error', 'errorMsg', 'basePage', 'detected', 'accessTime', 'imageName','title');
- 
-      // TODO: figure out how to fix this...
-//      if ( siteInfo[i].resolvedUrl == null ) {
-//        siteInfo[i].resolvedUrl = siteInfo[i].url;
-//      }
-
-//      var outfile = fs.open('data/' + buildSlug(siteInfo[i].url) + '.json', "w");
-//      outfile.write(JSON.stringify(siteInfo[i]));
-//      outfile.close();
-//    } catch (e) {
-//      console.log('Exception thrown ' + e);
-//    }
-//  }
-
-
-  try {
-    // lets get rid of the headers field.
-    // we don't need it in the results
-    U.each(siteInfo, function(site) {
-      if ( U.has(site, 'headers') ) {
-        delete site['headers'];
-      }
-    });
-    
-    var resultFile = outputDir + '/result.json';
-    console.log('writing result file to ' + resultFile);
-    console.log('output is ' + JSON.stringify(siteInfo));
-    var jsonOut = fs.open(resultFile, 'w');
-    jsonOut.write(JSON.stringify(siteInfo));
-    jsonOut.close();
-
-    //var csvOut = fs.open('data/result.csv', 'w');
-    //console.log(JSON.stringify(siteInfo));
-
-  } catch (e) {
-    console.log('exception thrown while writing csv file ' + e);
-  }
-    
-  //console.log(JSON.stringify(siteInfo));
-
-  //console.log(JSON.stringify(siteInfo));
-  console.log('exiting...');
-  phantom.exit();
-});
-
-console.log('all done');
-
-
-
