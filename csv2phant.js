@@ -84,7 +84,7 @@ fs.readFile(program.csvFile, 'utf8', function (err, data) {
             var slug = url.replace(/[^-a-zA-Z.0-9]/g, '-').replace(/^https?/i, '').replace(/-+/g, '-').replace(/^-/, '');
             var basefile = program.dataDir + path.sep + 'site_' + index + '_' + slug;
 
-            var job = 'phantomjs simple.js';
+            var job = 'phantomjs phantalyzer.js';
             if ( program.imageFormat ) {
               var imageFileName = basefile + '.' + program.imageFormat;
               job += ' --imageFile ' + imageFileName;  

@@ -163,7 +163,7 @@ page.onResourceReceived = function(resource) {
               if ( urlHostArr.length != resHostArr.length ) {
                 console.log('cnameDomainChange: true');
               } else {
-                while ( urlHostArray.length > 0 ) {
+                while ( urlHostArr.length > 0 ) {
                   if ( urlHostArr.pop() != resHostArr.pop() ) {
                     console.log('cnameDomainChange: true');
                     break;
