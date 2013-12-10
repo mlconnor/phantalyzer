@@ -7,6 +7,10 @@ var   system = require('system');
 var       fs = require('fs'); //http://code.google.com/p/phantomjs/source/browse/test/fs-spec-01.js?r=c22dfdc576fccd20db53e11a92cb349aa3cd0b2b
 //var   urlLib = require('url');
 
+//var parsed = parseUri('http://wwww.hello.com/');
+//console.log(JSON.stringify(parsed,null,2));
+//phantom.exit();
+
 var page = require('webpage').create();
 var basePageReached = false;
 var destinationError = false;
@@ -45,7 +49,7 @@ if ( U.has(argMap, "imageFile") ) {
   }
 }
 
-var timeoutMs = 15000;
+var timeoutMs = 25000;
 
 var timerId = setTimeout(function() {
   //console.log('closing page ' + url + ' due to timeout');
@@ -143,20 +147,32 @@ page.onResourceReceived = function(resource) {
           var urlHostArr = U.map(parsedReqUrl.host.split(/\./), toLowerCase);
           var resHostArr = U.map(parsedResUrl.host.split(/\./), toLowerCase);
 
-          console.log('urlHostArra', urlHostArr);
-          console.log('resHostArra', resHostArr);
+          console.log('urlHostDomain', urlHostArr);
+          console.log('resHostDomain', resHostArr);
 
+          var countryTld = false;
           if ( urlHostArr.length > 0 && resHostArr.length > 0 ) {
             var lastUrlToken = urlHostArr[urlHostArr.length - 1];
             var lastResToken = resHostArr[resHostArr.length - 1];
             if ( lastUrlToken == lastResToken && lastUrlToken.match(/^(?:AC|AD|AE|AF|AG|AI|AL|AM|AN|AO|AQ|AR|AS|AT|AU|AW|AX|AZ|BA|BB|BD|BE|BF|BG|BH|BI|BJ|BL|BM|BN|BO|BQ|BR|BS|BT|BV|BW|BY|BZ|CA|CC|CD|CF|CG|CH|CI|CK|CL|CM|CN|CO|CR|CU|CV|CW|CX|CY|CZ|DE|DJ|DK|DM|DO|DZ|EC|EE|EG|EH|ER|ES|ET|EU|FI|FJ|FK|FM|FO|FR|GA|GB|GD|GE|GF|GG|GH|GI|GL|GM|GN|GP|GQ|GR|GS|GT|GU|GW|GY|HK|HM|HN|HR|HT|HU|ID|IE|IL|IM|IN|IO|IQ|IR|IS|IT|JE|JM|JO|JP|KE|KG|KH|KI|KM|KN|KP|KR|KW|KY|KZ|LA|LB|LC|LI|LK|LR|LS|LT|LU|LV|LY|MA|MC|MD|ME|MF|MG|MH|MK|ML|MM|MN|MO|MP|MQ|MR|MS|MT|MU|MV|MW|MX|MY|MZ|NA|NC|NE|NF|NG|NI|NL|NO|NP|NR|NU|NZ|OM|PA|PE|PF|PG|PH|PK|PL|PM|PN|PR|PS|PT|PW|PY|QA|RE|RO|RS|RU|RW|SA|SB|SC|SD|SE|SG|SH|SI|SJ|SK|SL|SM|SN|SO|SR|ST|SU|SV|SX|SY|SZ|TC|TD|TF|TG|TH|TJ|TK|TL|TM|TN|TO|TP|TR|TT|TV|TW|TZ|UA|UG|UK|UM|US|UY|UZ|VA|VC|VE|VG|VI|VN|VU|WF|WS|YE|YT|ZA|ZM|ZW)$/i) ) {
+              countryTld = true;
               urlHostArr.pop();
               resHostArr.pop();
             }
 
-            /* let's check the last two domain tokens */
+            /* let's remove www from the urls. we don't want to report a cname change if it's just www */
+            if ( urlHostArr.slice(0,1) == 'www' ) {
+              urlHostArr = urlHostArr.slice(1);
+            }
+            if ( resHostArr.slice(0,1) == 'www' ) {
+              resHostArr = resHostArr.slice(1);
+            }
+           
+
+            /* let's check the last two domain tokens.  if they used a TLD like coca-cola.fr then we will
+               only check for the first one. */
             if ( urlHostArr.pop() != resHostArr.pop() ||
-                 urlHostArr.pop() != resHostArr.pop() ) {
+                 (countryTld == false && urlHostArr.pop() != resHostArr.pop()) ) {
               console.log('domainChange: true');
             } else {
               /* now let's check cname tokens */
@@ -255,6 +271,11 @@ page.open(url, function (status) {
   }
 
   console.log('pageLoadTimeMillis: ' + (new Date().getTime() - startTime));
+
+  U.each(phantom.cookies, function(cookie, index) {
+    console.log("cookie: " + JSON.stringify(cookie));
+  });
+  console.log('cookieDomains: ' + U.chain(phantom.cookies).pluck("domain").unique().value().join(','));
 
   if ( U.has(argMap, 'imageFile') ) {
     try {
