@@ -47,8 +47,8 @@
         "hit" : "yes",
         "miss" : "" 
     },
-    "Domain TLD Change" : {
-        "pattern" : "^domainTLDChange:",
+    "CName Change" : {
+        "pattern" : "^cnameDomainChange:",
         "modifiers" : "m",
         "hit" : "yes",
         "miss" : "" 
@@ -200,6 +200,12 @@
     },
     "Detected Apps" : {
         "pattern" : "^detectedApps: ([^$]*?)$",
+        "modifiers" : "m",
+        "hit"       : "{{1}}",
+        "false"      : ""
+    },
+    "Cookie Domains" : {
+        "pattern" : "^cookieDomains: ([^$]*?)$",
         "modifiers" : "m",
         "hit"       : "{{1}}",
         "false"      : ""
