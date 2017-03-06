@@ -9,7 +9,7 @@ In order to use Phantalyzer, you must install PhantomJS.  It is also important t
 
 At the core of the system is a js file called phantalyzer.js.  This file is a PhantomJS script that will open a headless Webkit browser, navigate to the site, and essentially write everything it sees to standard output.  This output also includes output from the Wappalyzer scripts.  You can run this by doing the following.
 
-phantomjs phantalyzer.js http://www.cnn.com
+    phantomjs phantalyzer.js http://www.cnn.com
 
 All of the output HTML from CNN would be piped to standard out as well as headers, resources requested, and last but not least, the apps detected by the Wawppalyzer.  Here is an example of the information written out from Wappalyzer.
 
