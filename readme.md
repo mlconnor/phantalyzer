@@ -9,7 +9,7 @@ In order to use Phantalyzer, you must install PhantomJS.  It is also important t
 
 At the core of the system is a js file called phantalyzer.js.  This file is a PhantomJS script that will open a headless Webkit browser, navigate to the site, and essentially write everything it sees to standard output.  This output also includes output from the Wappalyzer scripts.  You can run this by doing the following.
 
-    phantomjs phantalyzer.js http://www.cnn.com
+phantomjs phantalyzer.js http://www.cnn.com
 
 All of the output HTML from CNN would be piped to standard out as well as headers, resources requested, and last but not least, the apps detected by the Wawppalyzer.  Here is an example of the information written out from Wappalyzer.
 
@@ -130,6 +130,19 @@ And the result would look like this...
 
 Keep in mind that server.js is a starting point for you to write your own server.  I would also recommend using something like Express.js instead of connect.js.  I like connect because it is so lightweight and I just wanted to do something simple.
 
+### Docker
+
+Build the application like this:
+
+```
+docker build -t mlconnor/phantalyzer .
+```
+
+Run a container this way:
+
+```
+docker run -it -p 3000:3000 --name my-phantalyzer mlconnor/phantalyzer
+```
 ### The following is a list of apps the Wappalyzer detects ###
 
 ```
@@ -477,6 +490,3 @@ Zinnia
 
 ### Task List ###
 - [ ] Add instructions on how to run this on the server.
-
-
-
